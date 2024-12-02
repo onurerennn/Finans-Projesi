@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>İşlem Geçmişi | Borsa Takip</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="dashboard-page">
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <i class="fas fa-chart-line"></i>
+                    <h2>Borsa Takip</h2>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('stocks') }}" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Hisse Senetleri</span>
+                </a>
+                <a href="{{ url_for('history') }}" class="nav-item active">
+                    <i class="fas fa-history"></i>
+                    <span>İşlem Geçmişi</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Çıkış Yap</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span>{{ session['username'] }}</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Ana İçerik -->
+        <main class="main-content">
+            <!-- Flash Mesajları -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} fade-in">
+                                {{ message }}
+                                <button type="button" class="close-alert">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Üst Başlık -->
+            <div class="history-header">
+                <h1>İşlem Geçmişi</h1>
+                <div class="history-stats">
+                    <div class="stat-card fade-in">
+                        <i class="fas fa-eye"></i>
+                        <div class="stat-info">
+                            <span class="stat-value">{{ history|length }}</span>
+                            <span class="stat-label">Toplam İnceleme</span>
+                        </div>
+                    </div>
+                    <div class="stat-card fade-in">
+                        <i class="fas fa-chart-line"></i>
+                        <div class="stat-info">
+                            <span class="stat-value">{{ history|map(attribute='0')|unique|list|length }}</span>
+                            <span class="stat-label">Farklı Hisse</span>
+                        </div>
+                    </div>
+                    {% if history %}
+                    <div class="stat-card fade-in">
+                        <i class="fas fa-clock"></i>
+                        <div class="stat-info">
+                            <span class="stat-value">{{ history[0][2].strftime('%d.%m.%Y') }}</span>
+                            <span class="stat-label">Son İşlem</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Geçmiş Tablosu -->
+            <div class="history-table-container fade-in">
+                {% if history %}
+                <div class="table-toolbar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="table-search" placeholder="Geçmişte ara...">
+                    </div>
+                    <div class="table-actions">
+                        <button class="btn btn-icon" onclick="exportToCSV()" title="CSV olarak indir">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <button class="sort-btn" data-sort="symbol">
+                                        Sembol
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </th>
+                                <th>
+                                    <button class="sort-btn" data-sort="price">
+                                        Fiyat
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </th>
+                                <th>
+                                    <button class="sort-btn" data-sort="date">
+                                        Tarih
+                                        <i class="fas fa-sort"></i>
+                                    </button>
+                                </th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for symbol, price, date in history %}
+                            <tr class="fade-in">
+                                <td>
+                                    <div class="symbol-cell">
+                                        <span class="symbol-text">{{ symbol }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="price-cell">
+                                        ${{ "%.2f"|format(price) }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="date-cell">
+                                        <span class="date">{{ date.strftime('%d.%m.%Y') }}</span>
+                                        <span class="time">{{ date.strftime('%H:%M') }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <a href="{{ url_for('stock_detail', symbol=symbol) }}" 
+                                           class="btn btn-icon" title="Detayları görüntüle">
+                                            <i class="fas fa-chart-line"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="no-history fade-in">
+                    <i class="fas fa-history"></i>
+                    <p>Henüz işlem geçmişi bulunmuyor</p>
+                    <a href="{{ url_for('stocks') }}" class="btn btn-primary">
+                        Hisse Senetlerini İncele
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Tablo arama
+        const searchInput = document.getElementById('table-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchText = this.value.toLowerCase();
+                const rows = document.querySelectorAll('.history-table tbody tr');
+                
+                rows.forEach(row => {
+                    const symbol = row.querySelector('.symbol-text').textContent.toLowerCase();
+                    const date = row.querySelector('.date').textContent.toLowerCase();
+                    
+                    if (symbol.includes(searchText) || date.includes(searchText)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Tablo sıralama
+        let currentSort = { column: null, direction: 'asc' };
+        
+        document.querySelectorAll('.sort-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const column = this.dataset.sort;
+                const direction = currentSort.column === column && currentSort.direction === 'asc' ? 'desc' : 'asc';
+                
+                // Sıralama ikonlarını güncelle
+                document.querySelectorAll('.sort-btn i').forEach(icon => {
+                    icon.className = 'fas fa-sort';
+                });
+                this.querySelector('i').className = `fas fa-sort-${direction === 'asc' ? 'up' : 'down'}`;
+                
+                // Tabloyu sırala
+                const rows = Array.from(document.querySelectorAll('.history-table tbody tr'));
+                rows.sort((a, b) => {
+                    let aValue, bValue;
+                    
+                    if (column === 'symbol') {
+                        aValue = a.querySelector('.symbol-text').textContent;
+                        bValue = b.querySelector('.symbol-text').textContent;
+                    } else if (column === 'price') {
+                        aValue = parseFloat(a.querySelector('.price-cell').textContent.replace('$', ''));
+                        bValue = parseFloat(b.querySelector('.price-cell').textContent.replace('$', ''));
+                    } else if (column === 'date') {
+                        aValue = new Date(a.querySelector('.date').textContent.split('.').reverse().join('-'));
+                        bValue = new Date(b.querySelector('.date').textContent.split('.').reverse().join('-'));
+                    }
+                    
+                    if (direction === 'asc') {
+                        return aValue > bValue ? 1 : -1;
+                    } else {
+                        return aValue < bValue ? 1 : -1;
+                    }
+                });
+                
+                // Sıralanmış satırları tabloya ekle
+                const tbody = document.querySelector('.history-table tbody');
+                rows.forEach(row => tbody.appendChild(row));
+                
+                currentSort = { column, direction };
+            });
+        });
+
+        // CSV'ye dışa aktarma
+        function exportToCSV() {
+            const rows = document.querySelectorAll('.history-table tbody tr');
+            let csv = 'Sembol,Fiyat,Tarih\n';
+            
+            rows.forEach(row => {
+                const symbol = row.querySelector('.symbol-text').textContent;
+                const price = row.querySelector('.price-cell').textContent.replace('$', '');
+                const date = row.querySelector('.date').textContent;
+                
+                csv += `${symbol},${price},${date}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'islem_gecmisi.csv';
+            link.click();
+        }
+
+        // Flash mesajlarını kapatma
+        document.querySelectorAll('.close-alert').forEach(button => {
+            button.addEventListener('click', () => {
+                const alert = button.parentElement;
+                alert.style.opacity = '0';
+                setTimeout(() => alert.style.display = 'none', 300);
+            });
+        });
+
+        // Flash mesajlarını otomatik kapatma
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.style.display = 'none', 300);
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

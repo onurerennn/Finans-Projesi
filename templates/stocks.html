@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hisse Senetleri | Borsa Takip</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="dashboard-page">
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <i class="fas fa-chart-line"></i>
+                    <h2>Borsa Takip</h2>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('stocks') }}" class="nav-item active">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Hisse Senetleri</span>
+                </a>
+                <a href="{{ url_for('history') }}" class="nav-item">
+                    <i class="fas fa-history"></i>
+                    <span>İşlem Geçmişi</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="nav-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Çıkış Yap</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span>{{ session['username'] }}</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Ana İçerik -->
+        <main class="main-content">
+            <!-- Flash Mesajları -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} fade-in">
+                                {{ message }}
+                                <button type="button" class="close-alert">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Üst Başlık ve Arama -->
+            <div class="stocks-header">
+                <h1>Hisse Senetleri</h1>
+                <div class="search-container">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-input" class="search-input" 
+                               placeholder="Hisse senedi ara..." 
+                               value="{{ search if search else '' }}">
+                    </div>
+                    <select id="category-select" class="category-select">
+                        <option value="">Tüm Kategoriler</option>
+                        {% for category in categories %}
+                            <option value="{{ category }}" {% if category == current_category %}selected{% endif %}>
+                                {{ category }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Hisse Senetleri Grid -->
+            <div class="stocks-grid">
+                {% for stock in stocks %}
+                    {% set is_favorite = (stock,) in favorites %}
+                    {% set category = '' %}
+                    {% for cat, stocks in STOCK_CATEGORIES.items() %}
+                        {% if stock in stocks %}
+                            {% set category = cat %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <div class="stock-card fade-in">
+                        <div class="stock-header">
+                            <h2 class="stock-symbol">{{ stock }}</h2>
+                            <button class="favorite-btn" onclick="toggleFavorite('{{ stock }}')"
+                                    title="{{ 'Favorilerden çıkar' if is_favorite else 'Favorilere ekle' }}">
+                                <i class="fas fa-star {% if is_favorite %}active{% endif %}"></i>
+                            </button>
+                        </div>
+                        
+                        <span class="stock-category">
+                            <i class="fas fa-tag"></i>
+                            {{ category }}
+                        </span>
+                        
+                        <div class="stock-actions">
+                            <a href="{{ url_for('stock_detail', symbol=stock) }}" class="btn btn-primary">
+                                <i class="fas fa-chart-line"></i>
+                                Detaylar
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="no-results fade-in">
+                        <i class="fas fa-search"></i>
+                        <p>Hisse senedi bulunamadı</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Arama ve filtreleme
+        const searchInput = document.getElementById('search-input');
+        const categorySelect = document.getElementById('category-select');
+
+        function updateSearch() {
+            const search = searchInput.value;
+            const category = categorySelect.value;
+            window.location.href = `{{ url_for('stocks') }}?search=${search}&category=${category}`;
+        }
+
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                updateSearch();
+            }
+        });
+
+        categorySelect.addEventListener('change', updateSearch);
+
+        // Favori ekleme/çıkarma
+        function toggleFavorite(symbol) {
+            const isFavorite = event.target.closest('.favorite-btn').querySelector('i').classList.contains('active');
+            window.location.href = isFavorite 
+                ? `{{ url_for('remove_favorite', symbol='') }}${symbol}`
+                : `{{ url_for('add_favorite', symbol='') }}${symbol}`;
+        }
+
+        // Flash mesajlarını kapatma
+        document.querySelectorAll('.close-alert').forEach(button => {
+            button.addEventListener('click', () => {
+                const alert = button.parentElement;
+                alert.style.opacity = '0';
+                setTimeout(() => alert.style.display = 'none', 300);
+            });
+        });
+
+        // Flash mesajlarını otomatik kapatma
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.style.display = 'none', 300);
+            });
+        }, 5000);
+    </script>
+</body>
+</html>
