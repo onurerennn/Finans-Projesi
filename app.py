@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
 # Veritabanı bağlantı bilgileri
-SERVER = 'DESKTOP-6HEB27D\\SQLEXPRESS'
+SERVER = 'Server Name'
 DATABASE = 'StockDB'
 
 # Veritabanı bağlantı fonksiyonu
